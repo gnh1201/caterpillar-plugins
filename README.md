@@ -1,7 +1,8 @@
 # caterpillar-plugins
 Plug-ins repository for Caterpillar Proxy
 
-* [Caterpliiar Proxy](https://github.com/gnh1201/Caterpillar)
+* [Caterpliiar Proxy (github.com)](https://github.com/gnh1201/Caterpillar)
+* [Documentation (catswords-oss.rdbl.io)](https://catswords-oss.rdbl.io/3878632221/6060829930)
 
 ## Report abuse
 - [GitHub Security Advisories](https://github.com/gnh1201/caterpillar/security)
