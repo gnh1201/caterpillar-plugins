@@ -9,6 +9,7 @@
 # Created at: 2024-07-31
 # Updated at: 2024-10-19
 #
+import re
 import socket
 import ssl
 import requests
@@ -121,7 +122,7 @@ def query_to_serp(url: str):
         url = "%s/api.php?q=%s" % (librey_url, q)
         response = requests.get(url, verify=False)
         if response.status_code != 200:
-            return 502, str(e).encode(client_encoding)
+            raise Exception("Could not reach to SERP API server")
 
         return 200, response.content
     except Exception as e:
