@@ -7,7 +7,7 @@
 # Namyheon Go (Catswords Research) <gnh1201@gmail.com>
 # https://github.com/gnh1201/caterpillar
 # Created at: 2024-07-31
-# Updated at: 2024-07-31
+# Updated at: 2024-10-19
 #
 import socket
 import ssl
@@ -29,32 +29,12 @@ except Exception as e:
 
 es = Elasticsearch([es_host])
 
-
 def generate_id(url: str):
     """Generate a unique ID for a URL by hashing it."""
     return hashlib.sha256(url.encode("utf-8")).hexdigest()
 
 
-def get_cached_page_from_google(url: str):
-    status_code, content = (0, b"")
-
-    # Google Cache URL
-    google_cache_url = "https://webcache.googleusercontent.com/search?q=cache:" + url
-
-    # Send a GET request to Google Cache URL
-    response = requests.get(google_cache_url)
-
-    # Check if the request was successful (status code 200)
-    if response.status_code == 200:
-        content = response.content  # Extract content from response
-    else:
-        status_code = response.status_code
-
-    return status_code, content
-
-
-# API documentation: https://archive.org/help/wayback_api.php
-def get_cached_page_from_wayback(url: str):
+def fetch_cache_from_internet_archive(url: str):
     status_code, content = (0, b"")
 
     # Wayback Machine API URL
@@ -93,7 +73,7 @@ def get_cached_page_from_wayback(url: str):
     return status_code, content
 
 
-def get_cached_page_from_elasticsearch(url: str):
+def fetch_cache_from_elasticsearch(url: str):
     url_id = generate_id(url)
     try:
         result = es.get(index=es_index, id=url_id)
@@ -106,7 +86,7 @@ def get_cached_page_from_elasticsearch(url: str):
         return 502, b""
 
 
-def cache_to_elasticsearch(url: str, data: bytes):
+def push_cache_to_elasticsearch(url: str, data: bytes):
     url_id = generate_id(url)
     timestamp = datetime.now(UTC).timestamp()
     try:
@@ -123,7 +103,7 @@ def cache_to_elasticsearch(url: str, data: bytes):
         logger.error(f"Error caching to Elasticsearch: {e}")
 
 
-def get_page_from_origin_server(url: str):
+def fetch_origin_server(url: str):
     try:
         response = requests.get(url)
         return response.status_code, response.content
@@ -173,7 +153,7 @@ class AlwaysOnline(Extension):
         if method == b"GET":
             if not connected:
                 logger.info("Trying get data from Elasticsearch...")
-                status_code, content = get_cached_page_from_elasticsearch(target_url)
+                status_code, content = fetch_cache_from_elasticsearch(target_url)
                 if status_code == 200:
                     buffered += content
                     cache_hit += 1
@@ -181,24 +161,16 @@ class AlwaysOnline(Extension):
 
             if not connected:
                 logger.info("Trying get data from Wayback Machine...")
-                status_code, content = get_cached_page_from_wayback(target_url)
-                if status_code == 200:
-                    buffered += content
-                    cache_hit += 1
-                    connected = True
-
-            if not connected:
-                logger.info("Trying get data from Google Website Cache...")
-                status_code, content = get_cached_page_from_google(target_url)
+                status_code, content = fetch_cache_from_internet_archive(target_url)
                 if status_code == 200:
                     buffered += content
                     cache_hit += 1
                     connected = True
 
             if cache_hit == 0:
-                status_code, content = get_page_from_origin_server(target_url)
+                status_code, content = fetch_origin_server(target_url)
                 buffered += content
-                cache_to_elasticsearch(target_url, buffered)
+                push_cache_to_elasticsearch(target_url, buffered)
 
             conn.send(buffered)
         else:
