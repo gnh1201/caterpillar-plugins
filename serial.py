@@ -7,9 +7,10 @@
 # Teakwoo Kim <catry.me@gmail.com>
 # https://github.com/gnh1201/caterpillar
 # Created at: 2024-08-11
-# Updated at: 2024-08-11
+# Updated at: 2024-10-19
 #
 
+import time
 import serial
 from decouple import config
 from base import Extension, Logger
@@ -41,18 +42,23 @@ class Serial(Extension):
         try:
             port_path = url.decode(client_encoding).replace("/", "")
             if not ser:
-                ser = serial.Serial(port_path, baudrate=9600, timeout=2)
+                ser = serial.Serial(port_path, baudrate=9600, timeout=0)
                 connected = True
             logger.debug(f"Connected to {port_path} at 9600 baudrate")
+           
+            ser.reset_input_buffer()
+            pos = data.find(b"\r\n\r\n")
+            ser.write(data[pos + 4 :])
+            ser.flush()
+            
+            time.sleep(0.1)
+            out_but = b''
+            while ser.inWaiting() > 0:
+                out_but += ser.read(1)
 
-            ser.write(data)
+            conn.send(out_but)
             logger.debug(f"Data sent to {port_path}: {data}")
-
-            ser_data = ser.read_all()
-            logger.debug(f"Data received: {ser_data}")
-
-            if ser_data:
-                conn.send(ser_data.decode(client_encoding))
+            ser.reset_output_buffer()
         except serial.SerialException as e:
             logger.error(f"Failed to connect to {port}", exc_info=e)
         finally:
