@@ -9,6 +9,7 @@
 # Created at: 2024-07-31
 # Updated at: 2024-10-19
 #
+import re
 import socket
 import ssl
 import requests
@@ -24,6 +25,7 @@ try:
     client_encoding = config("CLIENT_ENCODING")
     es_host = config("ES_HOST")
     es_index = config("ES_INDEX")
+    librey_url = config("LIBREY_URL", default="https://serp.catswords.net")
 except Exception as e:
     logger.error("[*] Invalid configuration", exc_info=e)
 
@@ -111,6 +113,30 @@ def fetch_origin_server(url: str):
         return 502, str(e).encode(client_encoding)
 
 
+def query_to_serp(url: str):
+    try:
+        # Process both removal of http:// or https:// and replacement of special characters at once
+        # ^https?:\/\/ removes http:// or https://, [^\w\s] removes special characters
+        q = re.sub(r'^https?:\/\/|[^\w\s]', ' ', url)
+
+        url = "%s/api.php?q=%s" % (librey_url, q)
+        response = requests.get(url)
+        if response.status_code != 200:
+            return response.status_code, f"SERP API server returned status code {response.status_code}".encode(client_encoding)
+
+        return 200, response.content
+    except Exception as e:
+        return 502, f"Error querying SERP API: {str(e)}".encode(client_encoding)
+
+
+def query_to_llm(text: str):
+    try:
+        # todo
+        return 502, ""
+    except Exception as e:
+        return 502, str(e).encode(client_encoding)
+
+
 class AlwaysOnline(Extension):
     def __init__(self):
         self.type = "connector"  # this is a connector
@@ -123,7 +149,6 @@ class AlwaysOnline(Extension):
         connected = False
 
         is_ssl = scheme in [b"https", b"tls", b"ssl"]
-        cache_hit = 0
         buffered = b""
 
         def sendall(_sock: socket.socket, _conn: socket.socket, _data: bytes):
@@ -156,7 +181,6 @@ class AlwaysOnline(Extension):
                 status_code, content = fetch_cache_from_elasticsearch(target_url)
                 if status_code == 200:
                     buffered += content
-                    cache_hit += 1
                     connected = True
 
             if not connected:
@@ -164,13 +188,20 @@ class AlwaysOnline(Extension):
                 status_code, content = fetch_cache_from_internet_archive(target_url)
                 if status_code == 200:
                     buffered += content
-                    cache_hit += 1
                     connected = True
 
-            if cache_hit == 0:
+            if not connected:
                 status_code, content = fetch_origin_server(target_url)
-                buffered += content
-                push_cache_to_elasticsearch(target_url, buffered)
+                if status_code == 200:
+                    buffered += content
+                    push_cache_to_elasticsearch(target_url, buffered)
+                    connected = True
+
+            if not connected:
+                status_code, content = query_to_serp(target_url)
+                if status_code == 200:
+                    buffered += content
+                    connected = True
 
             conn.send(buffered)
         else:

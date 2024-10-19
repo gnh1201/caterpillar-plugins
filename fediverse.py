@@ -6,10 +6,10 @@
 # Caterpillar Proxy - The simple and parasitic web proxy with SPAM filter (formerly, php-httpproxy)
 # Namyheon Go (Catswords Research) <abuse@catswords.net>
 # https://github.com/gnh1201/caterpillar
-# https://github.com/gnh1201/caterpillar/wiki/Fediverse
+# https://catswords-oss.rdbl.io/1155378128/3821602484
 #
 # Created in: 2022-10-06
-# Updated in: 2024-10-08
+# Updated in: 2024-10-19
 #
 import base64
 import hashlib
@@ -26,16 +26,17 @@ from base import Extension, Logger
 
 logger = Logger(name="fediverse", level=logging.WARNING)
 
+# Read this: https://catswords-oss.rdbl.io/1155378128/3821602484
 try:
     client_encoding = config("CLIENT_ENCODING", default="utf-8")
-    truecaptcha_userid = config("TRUECAPTCHA_USERID")  # truecaptcha.org
-    truecaptcha_apikey = config("TRUECAPTCHA_APIKEY")  # truecaptcha.org
+    truecaptcha_userid = config("TRUECAPTCHA_USERID")
+    truecaptcha_apikey = config("TRUECAPTCHA_APIKEY")
     dictionary_file = config(
         "DICTIONARY_FILE", default="words_alpha.txt"
-    )  # https://github.com/dwyl/english-words
-    librey_apiurl = config(
-        "LIBREY_APIURL", default="https://serp.catswords.net"
-    )  # https://github.com/Ahwxorg/librey
+    )
+    librey_url = config(
+        "LIBREY_URL", default="https://serp.catswords.net"
+    )
     bad_domain = config("BAD_DOMAIN", default="")
 except Exception as e:
     logger.error("[*] Invalid configuration", exc_info=e)
@@ -115,7 +116,7 @@ class Fediverse(Extension):
                 strategies.append("KnownWords4")
 
             # check ID with SearchEngine3 strategy
-            if librey_apiurl != "" and all(map(self.search_engine_test, matches)):
+            if librey_url != "" and all(map(self.search_engine_test, matches)):
                 score += 1
                 strategies.append("SearchEngine3")
 
@@ -298,7 +299,7 @@ class Fediverse(Extension):
 
     # Strategy: SearchEngine3
     def search_engine_test(self, s):
-        url = "%s/api.php?q=%s" % (librey_apiurl, s)
+        url = "%s/api.php?q=%s" % (librey_url, s)
         response = requests.get(url, verify=False)
         if response.status_code != 200:
             return False
