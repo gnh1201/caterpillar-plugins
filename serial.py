@@ -46,19 +46,15 @@ class Serial(Extension):
                 connected = True
             logger.debug(f"Connected to {port_path} at 9600 baudrate")
            
-            ser.reset_input_buffer()
             pos = data.find(b"\r\n\r\n")
             ser.write(data[pos + 4 :])
             ser.flush()
             
             time.sleep(0.1)
-            out_but = b''
-            while ser.inWaiting() > 0:
-                out_but += ser.read(1)
+            out_but = ser.read(ser.in_waiting)
 
             conn.send(out_but)
             logger.debug(f"Data sent to {port_path}: {data}")
-            ser.reset_output_buffer()
         except serial.SerialException as e:
             logger.error(f"Failed to connect to {port}", exc_info=e)
         finally:
