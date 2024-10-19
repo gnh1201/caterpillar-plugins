@@ -120,13 +120,13 @@ def query_to_serp(url: str):
         q = re.sub(r'^https?:\/\/|[^\w\s]', ' ', url)
 
         url = "%s/api.php?q=%s" % (librey_url, q)
-        response = requests.get(url, verify=False)
+        response = requests.get(url)
         if response.status_code != 200:
-            raise Exception("Could not reach to SERP API server")
+            return response.status_code, f"SERP API server returned status code {response.status_code}".encode(client_encoding)
 
         return 200, response.content
     except Exception as e:
-        return 502, str(e).encode(client_encoding)
+        return 502, f"Error querying SERP API: {str(e)}".encode(client_encoding)
 
 
 def query_to_llm(text: str):
