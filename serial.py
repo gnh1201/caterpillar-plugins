@@ -50,7 +50,7 @@ class Serial(Extension):
             ser.write(data[pos + 4 :])
             ser.flush()
             
-            time.sleep(0.1)
+            time.sleep(0.5)
             out_but = ser.read(ser.in_waiting)
 
             conn.send(out_but)
