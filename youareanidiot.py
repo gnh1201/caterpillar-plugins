@@ -10,6 +10,7 @@
 # Updated in: 2022-10-25
 #
 
+import logging
 from base import Extension, Logger
 
 logger = Logger(name="youareanidiot", level=logging.WARNING)

@@ -7,7 +7,7 @@
 # Namyheon Go (Catswords Research) <gnh1201@gmail.com>
 # https://github.com/gnh1201/caterpillar
 # Created at: 2024-07-31
-# Updated at: 2024-10-25
+# Updated at: 2024-10-19
 #
 import re
 import socket
@@ -119,7 +119,7 @@ def query_to_serp(url: str):
         # Process both removal of http:// or https:// and replacement of special characters at once
         # ^https?:\/\/ removes http:// or https://, [^\w\s] removes special characters
         q = re.sub(r'^https?:\/\/|[^\w\s]', ' ', url)
-`
+
         url = "%s/api.php?q=%s" % (librey_url, q)
         response = requests.get(url)
         if response.status_code != 200:
@@ -238,7 +238,7 @@ class AlwaysOnline(Extension):
                 status_code, content = query_to_serp(target_url)
                 if status_code == 200:
                     llm_status_code, llm_content = query_to_llm(content)
-                    if status_code == 200:
+                    if llm_status_code == 200:
                         buffered += llm_content
                     else:
                         buffered += content
