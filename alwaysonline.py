@@ -145,11 +145,11 @@ def query_to_llm(content: bytes):
         # Convert bytes to string
         content_str = content.decode(client_encoding)
 
-        # Generate a prompt asking to infer the original user's search intent
+        # Generate a prompt asking for the most helpful information based on the scraped data
         prompt = (
             "The following content was scraped from a search engine. Based on this data, "
-            "please infer the most likely information the user was originally searching for "
-            "and explain it as accurately as possible:\n\n"
+            "please extract and summarize the most helpful and relevant information that "
+            "would assist the user in finding what they are likely looking for:\n\n"
             f"{content_str}"
         )
 
