@@ -7,7 +7,7 @@
 # Namyheon Go (Catswords Research) <gnh1201@gmail.com>
 # https://github.com/gnh1201/caterpillar
 # Created at: 2024-07-31
-# Updated at: 2024-10-19
+# Updated at: 2024-10-25
 #
 import re
 import socket
@@ -26,6 +26,7 @@ try:
     es_host = config("ES_HOST")
     es_index = config("ES_INDEX")
     librey_url = config("LIBREY_URL", default="https://serp.catswords.net")
+    chatgpt_apikey = config("CHATGPT_APIKEY")
 except Exception as e:
     logger.error("[*] Invalid configuration", exc_info=e)
 
@@ -118,7 +119,7 @@ def query_to_serp(url: str):
         # Process both removal of http:// or https:// and replacement of special characters at once
         # ^https?:\/\/ removes http:// or https://, [^\w\s] removes special characters
         q = re.sub(r'^https?:\/\/|[^\w\s]', ' ', url)
-
+`
         url = "%s/api.php?q=%s" % (librey_url, q)
         response = requests.get(url)
         if response.status_code != 200:
@@ -129,12 +130,48 @@ def query_to_serp(url: str):
         return 502, f"Error querying SERP API: {str(e)}".encode(client_encoding)
 
 
-def query_to_llm(text: str):
+def query_to_llm(content: bytes):
     try:
-        # todo
-        return 502, ""
+        # ChatGPT API call
+        headers = {
+            "Authorization": f"Bearer {chatgpt_apikey}",
+            "Content-Type": "application/json"
+        }
+
+        # Convert bytes to string
+        content_str = content.decode(client_encoding)
+
+        # Generate a prompt asking to infer the original user's search intent
+        prompt = (
+            "The following content was scraped from a search engine. Based on this data, "
+            "please infer the most likely information the user was originally searching for "
+            "and explain it as accurately as possible:\n\n"
+            f"{content_str}"
+        )
+
+        data = {
+            "model": "gpt-4",
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt}
+            ]
+        }
+
+        response = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            json=data,
+            headers=headers
+        )
+
+        if response.status_code == 200:
+            response_data = response.json()
+            llm_content = response_data['choices'][0]['message']['content']
+            return 200, llm_content.encode(client_encoding)
+        else:
+            return response.status_code, f"ChatGPT API returned status code {response.status_code}".encode(client_encoding)
+
     except Exception as e:
-        return 502, str(e).encode(client_encoding)
+        return 502, f"Error querying ChatGPT API: {str(e)}".encode(client_encoding)
 
 
 class AlwaysOnline(Extension):
@@ -200,7 +237,11 @@ class AlwaysOnline(Extension):
             if not connected:
                 status_code, content = query_to_serp(target_url)
                 if status_code == 200:
-                    buffered += content
+                    llm_status_code, llm_content = query_to_llm(content)
+                    if status_code == 200:
+                        buffered += llm_content
+                    else:
+                        buffered += content
                     connected = True
 
             conn.send(buffered)
