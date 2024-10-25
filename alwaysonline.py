@@ -240,7 +240,7 @@ class AlwaysOnline(Extension):
                     connected = True
 
             if not connected:
-                logger.info("Trying get data from the SEEP and LLM...")
+                logger.info("Trying get data from the SERP and LLM services...")
                 status_code, content = query_to_serp(target_url)
                 if status_code == 200:
                     llm_status_code, llm_content = query_to_llm(content)
