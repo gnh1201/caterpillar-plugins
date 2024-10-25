@@ -22,7 +22,7 @@ class Container(Extension):
         self.type = "rpcmethod"
         self.method = "container_init"
         self.exported_methods = [
-            "container_cteate",
+            "container_create",
             "container_start",
             "container_run",
             "container_stop",
@@ -40,15 +40,18 @@ class Container(Extension):
         logger.info("[*] Greeting! dispatch")
         conn.send(b"Greeting! dispatch")
 
-    def container_cteate(self, type, id, params, conn: socket):
+    def container_create(self, type, id, params, conn: socket):
         # todo: -
-        return b"[*] Created"
+        logger.info("[*] Created")
+        return True
 
     def container_start(self, type, id, params, conn: socket):
         name = params["name"]
 
         container = self.client.containers.get(name)
         container.start()
+        logger.info("[*] Started")
+        return True
 
     def container_run(self, type, id, params, conn: socket):
         devices = params["devices"]
@@ -68,7 +71,7 @@ class Container(Extension):
         )
         container.logs()
         logger.info("[*] Running...")
-        return b"[*] Running..."
+        return True
 
     def container_stop(self, type, id, params, conn: socket):
         name = params["name"]
@@ -77,36 +80,42 @@ class Container(Extension):
         container.stop()
 
         logger.info("[*] Stopped")
-        return b"[*] Stopped"
+        return True
 
     def container_pause(self, type, id, params, conn: socket):
         name = params["name"]
 
         container = self.client.containers.get(name)
         container.pause()
-        return b"[*] Paused"
+        
+        logger.info("[*] Paused")
+        return True
 
     def container_unpause(self, type, id, params, conn: socket):
         name = params["name"]
 
         container = self.client.containers.get(name)
         container.unpause()
-        return b"[*] Unpaused"
+        logger.info("[*] Unpaused")
+        return True
 
     def container_restart(self, type, id, params, conn: socket):
         name = params["name"]
 
         container = self.client.containers.get(name)
         container.restart()
-        return b"[*] Restarted"
+        logger.info("[*] Restarted")
+        return True
 
     def container_kill(self, type, id, params, conn: socket):
         # TODO: -
-        return b"[*] Killed"
+        logger.info("[*] Killed")
+        return True
 
     def container_remove(self, type, id, params, conn: socket):
         name = params["name"]
 
         container = self.client.containers.get(name)
         container.remove()
-        return b"[*] Removed"
+        logger.info("[*] Removed")
+        return True
