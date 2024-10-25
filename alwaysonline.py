@@ -32,6 +32,19 @@ except Exception as e:
 
 es = Elasticsearch([es_host])
 
+def proxy_check_filtered(
+    data: bytes, webserver: bytes, port: bytes, scheme: bytes, method: bytes, url: bytes
+):
+    filtered = False
+
+    filters = Extension.get_filters()
+    logger.info("[*] Checking data with %s filters..." % (str(len(filters))))
+    for f in filters:
+        filtered = f.test(filtered, data, webserver, port, scheme, method, url)
+
+    return filtered
+
+
 def generate_id(url: str):
     """Generate a unique ID for a URL by hashing it."""
     return hashlib.sha256(url.encode("utf-8")).hexdigest()
@@ -250,7 +263,10 @@ class AlwaysOnline(Extension):
                         buffered += content
                     connected = True
 
-            conn.send(buffered)
+            if not proxy_check_filtered(buffered, webserver, port, scheme, method, url):
+                conn.send(buffered)
+            else:
+                conn.send(b'HTTP/1.1 403 Forbidden\r\n\r\n{"status":403}')
         else:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
