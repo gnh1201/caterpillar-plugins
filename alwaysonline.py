@@ -44,34 +44,38 @@ def fetch_cache_from_internet_archive(url: str):
     wayback_api_url = "http://archive.org/wayback/available?url=" + url
 
     # Send a GET request to Wayback Machine API
-    response = requests.get(wayback_api_url)
+    try:
+        response = requests.get(wayback_api_url, timeout=5)
 
-    # Check if the request was successful (status code 200)
-    if response.status_code == 200:
-        try:
-            # Parse JSON response
-            data = response.json()
-            archived_snapshots = data.get("archived_snapshots", {})
-            closest_snapshot = archived_snapshots.get("closest", {})
+        # Check if the request was successful (status code 200)
+        if response.status_code == 200:
+            try:
+                # Parse JSON response
+                data = response.json()
+                archived_snapshots = data.get("archived_snapshots", {})
+                closest_snapshot = archived_snapshots.get("closest", {})
 
-            # Check if the URL is available in the archive
-            if closest_snapshot:
-                archived_url = closest_snapshot.get("url", "")
+                # Check if the URL is available in the archive
+                if closest_snapshot:
+                    archived_url = closest_snapshot.get("url", "")
 
-                # If URL is available, fetch the content of the archived page
-                if archived_url:
-                    archived_page_response = requests.get(archived_url)
-                    status_code = archived_page_response.status_code
-                    if status_code == 200:
-                        content = archived_page_response.content
+                    # If URL is available, fetch the content of the archived page
+                    if archived_url:
+                        archived_page_response = requests.get(archived_url)
+                        status_code = archived_page_response.status_code
+                        if status_code == 200:
+                            content = archived_page_response.content
+                    else:
+                        status_code = 404
                 else:
                     status_code = 404
-            else:
-                status_code = 404
-        except:
-            status_code = 502
-    else:
-        status_code = response.status_code
+            except:
+                status_code = 502
+        else:
+            status_code = response.status_code
+    except Exception as e:
+        logger.error(f"Error fetching from Internet Archive: {e}")
+        status_code = 502
 
     return status_code, content
 
@@ -228,6 +232,7 @@ class AlwaysOnline(Extension):
                     connected = True
 
             if not connected:
+                logger.info("Trying get data from the origin server...")
                 status_code, content = fetch_origin_server(target_url)
                 if status_code == 200:
                     buffered += content
@@ -235,6 +240,7 @@ class AlwaysOnline(Extension):
                     connected = True
 
             if not connected:
+                logger.info("Trying get data from the SEEP and LLM...")
                 status_code, content = query_to_serp(target_url)
                 if status_code == 200:
                     llm_status_code, llm_content = query_to_llm(content)
