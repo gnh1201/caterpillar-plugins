@@ -17,8 +17,9 @@ logger = Logger(name="youareanidiot", level=logging.WARNING)
 class YouAreAnIdiot(Extension):
     def __init__(self):
         self.type = "filter"  # this is a filter
-		
+        
     def test(self, filtered, data, webserver, port, scheme, method, url):
-		if data.find(b"youareanidiot") > -1:
-			logger.warning("[*] Certainly, You are an idiot :)")
-			return True
+        if data.find(b"youareanidiot") > -1:
+            logger.warning("[*] Certainly, You are an idiot :)")
+            return True
+
